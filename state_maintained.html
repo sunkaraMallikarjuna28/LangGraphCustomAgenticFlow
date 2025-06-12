@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Management Through Pipeline - Interactive Animation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .pipeline-container {
+            position: relative;
+            height: 400px;
+            margin: 40px 0;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .pipeline-stage {
+            position: absolute;
+            width: 150px;
+            height: 120px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .pipeline-stage:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        .stage-1 { top: 50px; left: 50px; }
+        .stage-2 { top: 50px; left: 250px; }
+        .stage-3 { top: 50px; left: 450px; }
+        .stage-4 { top: 50px; left: 650px; }
+        .stage-5 { top: 50px; left: 850px; }
+
+        .data-packet {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 10;
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        .state-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .state-info {
+            background: linear-gradient(135deg, #e3ffe7 0%, #d9e7ff 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+
+        .pipeline-flow {
+            position: absolute;
+            top: 110px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            opacity: 0.3;
+        }
+
+        .flow-indicator {
+            position: absolute;
+            top: 108px;
+            width: 20px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 4px;
+            opacity: 0;
+        }
+
+        /* Animations */
+        @keyframes movePacket {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateX(0);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateX(200px);
+            }
+        }
+
+        @keyframes stageActivate {
+            0% { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+            50% { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+            100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        }
+
+        @keyframes packetSpawn {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes flowPulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.3; }
+        }
+
+        .active-stage {
+            animation: stageActivate 1s ease-in-out;
+        }
+
+        .spawning {
+            animation: packetSpawn 0.5s ease-out forwards;
+        }
+
+        .moving {
+            animation: movePacket 2s linear forwards;
+        }
+
+        .flow-active {
+            animation: flowPulse 2s ease-in-out infinite;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .pipeline-stage {
+                width: 100px;
+                height: 80px;
+                font-size: 0.8rem;
+            }
+            
+            .stage-1 { left: 20px; }
+            .stage-2 { left: 140px; }
+            .stage-3 { left: 260px; }
+            .stage-4 { left: 20px; top: 180px; }
+            .stage-5 { left: 140px; top: 180px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 State Management Through Pipeline</h1>
+            <p>Interactive visualization of how state is maintained and transformed through each pipeline stage</p>
+        </div>
+
+        <div class="state-info">
+            <h3>📋 Understanding State Management in Pipelines</h3>
+            <p><strong>State</strong> represents the current condition and data of a system at any point in time. In a pipeline, state is:</p>
+            <ul>
+                <li>🔄 <strong>Maintained:</strong> Preserved across pipeline stages</li>
+                <li>📊 <strong>Transformed:</strong> Modified and enriched at each step</li>
+                <li>💾 <strong>Persistent:</strong> Stored and retrievable throughout the process</li>
+                <li>🔗 <strong>Contextual:</strong> Carries information from previous stages</li>
+            </ul>
+        </div>
+
+        <div class="pipeline-container">
+            <div class="pipeline-flow"></div>
+            
+            <div class="pipeline-stage stage-1" onclick="activateStage(1)">
+                <div>📝</div>
+                <div>Input</div>
+                <div>Processing</div>
+            </div>
+            
+            <div class="pipeline-stage stage-2" onclick="activateStage(2)">
+                <div>🔍</div>
+                <div>Data</div>
+                <div>Validation</div>
+            </div>
+            
+            <div class="pipeline-stage stage-3" onclick="activateStage(3)">
+                <div>⚙️</div>
+                <div>Business</div>
+                <div>Logic</div>
+            </div>
+            
+            <div class="pipeline-stage stage-4" onclick="activateStage(4)">
+                <div>🧠</div>
+                <div>AI</div>
+                <div>Processing</div>
+            </div>
+            
+            <div class="pipeline-stage stage-5" onclick="activateStage(5)">
+                <div>📤</div>
+                <div>Output</div>
+                <div>Generation</div>
+            </div>
+
+            <div class="state-display" id="stateDisplay">
+                <strong>Current State:</strong> Ready to process | <strong>Stage:</strong> Idle | <strong>Data:</strong> None
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <button class="control-btn" onclick="startPipeline()">🚀 Start Pipeline</button>
+            <button class="control-btn" onclick="stepThrough()">👣 Step Through</button>
+            <button class="control-btn" onclick="resetPipeline()">🔄 Reset</button>
+            <button class="control-btn" onclick="showStateDetails()">📊 Show State Details</button>
+        </div>
+
+        <div class="state-info">
+            <h3>🎯 Pipeline State Examples</h3>
+            <div id="stateExamples">
+                <p><strong>Stage 1 State:</strong> { "input": "user_query", "timestamp": "2025-06-08T14:22:00", "session_id": "abc123" }</p>
+                <p><strong>Stage 2 State:</strong> { "input": "user_query", "validated": true, "entities": ["person", "location"], "session_id": "abc123" }</p>
+                <p><strong>Stage 3 State:</strong> { "processed_input": "structured_query", "business_rules": "applied", "context": "enriched", "session_id": "abc123" }</p>
+                <p><strong>Stage 4 State:</strong> { "ai_response": "generated", "confidence": 0.95, "reasoning": "chain_of_thought", "session_id": "abc123" }</p>
+                <p><strong>Stage 5 State:</strong> { "final_output": "formatted_response", "status": "complete", "execution_time": "2.3s", "session_id": "abc123" }</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStage = 0;
+        let pipelineRunning = false;
+        let steppingMode = false;
+        
+        const stageStates = [
+            {
+                stage: "Input Processing",
+                data: "Raw user input received",
+                state: { input: "user_query", timestamp: new Date().toISOString(), session_id: "abc123" }
+            },
+            {
+                stage: "Data Validation", 
+                data: "Input validated and parsed",
+                state: { input: "user_query", validated: true, entities: ["person", "location"], session_id: "abc123" }
+            },
+            {
+                stage: "Business Logic",
+                data: "Business rules applied",
+                state: { processed_input: "structured_query", business_rules: "applied", context: "enriched", session_id: "abc123" }
+            },
+            {
+                stage: "AI Processing",
+                data: "AI model inference complete",
+                state: { ai_response: "generated", confidence: 0.95, reasoning: "chain_of_thought", session_id: "abc123" }
+            },
+            {
+                stage: "Output Generation",
+                data: "Final response formatted",
+                state: { final_output: "formatted_response", status: "complete", execution_time: "2.3s", session_id: "abc123" }
+            }
+        ];
+
+        function updateStateDisplay(stageIndex) {
+            const stateDisplay = document.getElementById('stateDisplay');
+            if (stageIndex >= 0 && stageIndex < stageStates.length) {
+                const current = stageStates[stageIndex];
+                stateDisplay.innerHTML = `
+                    <strong>Current State:</strong> ${current.data} | 
+                    <strong>Stage:</strong> ${current.stage} | 
+                    <strong>Data:</strong> ${JSON.stringify(current.state).substring(0, 50)}...
+                `;
+            } else {
+                stateDisplay.innerHTML = `
+                    <strong>Current State:</strong> Ready to process | 
+                    <strong>Stage:</strong> Idle | 
+                    <strong>Data:</strong> None
+                `;
+            }
+        }
+
+        function activateStage(stageNum) {
+            const stage = document.querySelector(`.stage-${stageNum}`);
+            stage.classList.add('active-stage');
+            
+            // Create and animate data packet
+            createDataPacket(stageNum);
+            
+            // Update state display
+            updateStateDisplay(stageNum - 1);
+            
+            setTimeout(() => {
+                stage.classList.remove('active-stage');
+            }, 1000);
+        }
+
+        function createDataPacket(stageNum) {
+            const packet = document.createElement('div');
+            packet.className = 'data-packet spawning';
+            packet.textContent = 'D';
+            packet.style.left = (50 + (stageNum - 1) * 200 + 55) + 'px';
+            packet.style.top = '75px';
+            
+            document.querySelector('.pipeline-container').appendChild(packet);
+            
+            // Animate packet movement to next stage if not last stage
+            if (stageNum < 5) {
+                setTimeout(() => {
+                    packet.classList.add('moving');
+                    packet.style.left = (50 + stageNum * 200 + 55) + 'px';
+                }, 500);
+                
+                setTimeout(() => {
+                    packet.remove();
+                }, 2500);
+            } else {
+                setTimeout(() => {
+                    packet.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+                    packet.textContent = '✓';
+                }, 1000);
+                
+                setTimeout(() => {
+                    packet.remove();
+                }, 3000);
+            }
+        }
+
+        function startPipeline() {
+            if (pipelineRunning) return;
+            
+            pipelineRunning = true;
+            currentStage = 0;
+            
+            const flow = document.querySelector('.pipeline-flow');
+            flow.classList.add('flow-active');
+            
+            function processNextStage() {
+                if (currentStage < 5) {
+                    currentStage++;
+                    activateStage(currentStage);
+                    
+                    setTimeout(processNextStage, 2000);
+                } else {
+                    pipelineRunning = false;
+                    flow.classList.remove('flow-active');
+                    
+                    // Show completion message
+                    setTimeout(() => {
+                        alert('🎉 Pipeline completed! State has been maintained and transformed through all stages.');
+                        updateStateDisplay(-1);
+                    }, 1000);
+                }
+            }
+            
+            processNextStage();
+        }
+
+        function stepThrough() {
+            if (pipelineRunning && !steppingMode) return;
+            
+            if (!steppingMode) {
+                steppingMode = true;
+                currentStage = 0;
+            }
+            
+            if (currentStage < 5) {
+                currentStage++;
+                activateStage(currentStage);
+            } else {
+                steppingMode = false;
+                alert('🎉 Step-through completed! You can see how state evolves at each stage.');
+                updateStateDisplay(-1);
+            }
+        }
+
+        function resetPipeline() {
+            pipelineRunning = false;
+            steppingMode = false;
+            currentStage = 0;
+            
+            // Remove all data packets
+            const packets = document.querySelectorAll('.data-packet');
+            packets.forEach(packet => packet.remove());
+            
+            // Reset flow animation
+            const flow = document.querySelector('.pipeline-flow');
+            flow.classList.remove('flow-active');
+            
+            // Reset state display
+            updateStateDisplay(-1);
+            
+            // Reset all stages
+            const stages = document.querySelectorAll('.pipeline-stage');
+            stages.forEach(stage => stage.classList.remove('active-stage'));
+        }
+
+        function showStateDetails() {
+            const details = `
+🔄 STATE MANAGEMENT IN PIPELINES
+
+📊 Key Concepts:
+
+1. STATE PERSISTENCE
+   • State data is maintained across all pipeline stages
+   • Each stage can read and modify the state
+   • Previous stage outputs become inputs for next stage
+
+2. STATE TRANSFORMATION
+   • Input: Raw data enters the pipeline
+   • Validation: Data is cleaned and validated
+   • Processing: Business logic is applied
+   • AI Processing: Machine learning models process data
+   • Output: Final result is generated
+
+3. STATE CONTEXT
+   • Session ID maintains user context
+   • Timestamps track processing time
+   • Metadata preserves system information
+   • Error states handle failures gracefully
+
+4. REAL-WORLD EXAMPLES
+   • LangGraph: Maintains conversation state across agent interactions
+   • React: Component state persists through re-renders
+   • Database Transactions: ACID properties ensure state consistency
+   • Workflow Engines: Process state tracks execution progress
+
+🎯 Benefits:
+   ✅ Consistency across pipeline stages
+   ✅ Error recovery and rollback capabilities
+   ✅ Debugging and monitoring support
+   ✅ Scalable and maintainable architecture
+            `;
+            
+            alert(details);
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    startPipeline();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    stepThrough();
+                    break;
+                case 'r':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        resetPipeline();
+                    }
+                    break;
+                case 's':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        showStateDetails();
+                    }
+                    break;
+            }
+        });
+
+        // Initialize
+        updateStateDisplay(-1);
+        
+        // Add some floating particles for visual appeal
+        function createFloatingParticle() {
+            const particle = document.createElement('div');
+            particle.style.cssText = `
+                position: fixed;
+                width: 6px;
+                height: 6px;
+                background: rgba(102, 126, 234, 0.3);
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: -1;
+                left: ${Math.random() * window.innerWidth}px;
+                top: ${Math.random() * window.innerHeight}px;
+                animation: float 6s ease-in-out infinite;
+            `;
+            
+            document.body.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 6000);
+        }
+
+        // Create floating particles periodically
+        setInterval(createFloatingParticle, 2000);
+
+        console.log('🔄 State Management Pipeline Demo Loaded!');
+        console.log('⌨️ Keyboard shortcuts:');
+        console.log('   Space: Start pipeline');
+        console.log('   Arrow Right: Step through');
+        console.log('   Ctrl+R: Reset');
+        console.log('   Ctrl+S: Show details');
+    </script>
+</body>
+</html>
